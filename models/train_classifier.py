@@ -1,20 +1,70 @@
 import sys
+# import libraries
+from sqlalchemy import create_engine
+import pandas as pd
+import nltk
+import numpy as np
 
+from xgboost import XGBClassifier
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.multioutput import MultiOutputClassifier
+from sklearn.base import BaseEstimator
+from sklearn.pipeline import Pipeline
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.decomposition import TruncatedSVD
+from sklearn.feature_extraction.text import TfidfTransformer
+from sklearn.model_selection import GridSearchCV
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import classification_report
+from sklearn.metrics import f1_score
+from sklearn.metrics import accuracy_score
+from sklearn.metrics import precision_score
+from sklearn.metrics import f1_score
+from sklearn.metrics import recall_score
 
 def load_data(database_filepath):
-    pass
-
+    # load data from database
+    engine = create_engine('sqlite:///'+database_filepath)
+    df = pd.read_sql('DisasterData', engine)
+    df = df[df['related'] != 2]
+    X = df['message']
+    y = df.drop(['id', 'message', 'original', 'genre'], axis=1)
+    category_names = y.columns
+    return X, y, category_names
 
 def tokenize(text):
-    pass
+    tokenizer = nltk.tokenize.casual.TweetTokenizer(preserve_case=False)
+    return tokenizer.tokenize(text)
 
 
 def build_model():
-    pass
+    pipeline = Pipeline([
+        ('vect', CountVectorizer(tokenizer=tokenize)),
+        ('tfidf', TfidfTransformer()),
+        ('clf',  MultiOutputClassifier(XGBClassifier()))
+    ])
+    parameters = {
+        "clf__estimator__n_estimators": [100,200]
+    }
 
+    cv = GridSearchCV(pipeline, param_grid=parameters, n_jobs=-1, verbose=1)
+    return cv
+    
 
-def evaluate_model(model, X_test, Y_test, category_names):
-    pass
+def evaluate_model(model, X_test, y_test, category_names):
+    y_pred = model.predict(X_test)
+    
+    print(classification_report(y_preds, y_test.values, target_names=category_names))
+    
+    f1 = f1_score(y_test.values, y_pred, average='micro')
+    p = precision_score(y_test.values, y_pred, average='micro')
+    r = recall_score(y_test.values, y_pred, average='micro')
+    a = accuracy_score(y_test.values, y_pred)
+
+    print("f1_score", f1)
+    print("precision_score", p)
+    print("recall_score", r)
+    print("accuracy_score", a)
 
 
 def save_model(model, model_filepath):
