@@ -28,8 +28,8 @@ def load_data(database_filepath):
     df = pd.read_sql('DisasterData', engine)
     print(df.columns)
     X = df['message'].values
-    category_names = y.columns
     y = df.drop(['id', 'message', 'original', 'genre'], axis=1)
+    category_names = y.columns
     y = y.values
     return X, y, category_names
 
