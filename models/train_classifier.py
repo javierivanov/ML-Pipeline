@@ -26,10 +26,11 @@ def load_data(database_filepath):
     # load data from database
     engine = create_engine('sqlite:///'+database_filepath)
     df = pd.read_sql('DisasterData', engine)
-    df = df[df['related'] != 2]
-    X = df['message']
-    y = df.drop(['id', 'message', 'original', 'genre'], axis=1)
+    print(df.columns)
+    X = df['message'].values
     category_names = y.columns
+    y = df.drop(['id', 'message', 'original', 'genre'], axis=1)
+    y = y.values
     return X, y, category_names
 
 def tokenize(text):
@@ -54,12 +55,12 @@ def build_model():
 def evaluate_model(model, X_test, y_test, category_names):
     y_pred = model.predict(X_test)
     
-    print(classification_report(y_preds, y_test.values, target_names=category_names))
+    print(classification_report(y_preds, y_test, target_names=category_names))
     
-    f1 = f1_score(y_test.values, y_pred, average='micro')
-    p = precision_score(y_test.values, y_pred, average='micro')
-    r = recall_score(y_test.values, y_pred, average='micro')
-    a = accuracy_score(y_test.values, y_pred)
+    f1 = f1_score(y_test, y_pred, average='micro')
+    p = precision_score(y_test, y_pred, average='micro')
+    r = recall_score(y_test, y_pred, average='micro')
+    a = accuracy_score(y_test, y_pred)
 
     print("f1_score", f1)
     print("precision_score", p)
