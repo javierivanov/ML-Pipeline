@@ -1,4 +1,5 @@
 import sys
+import pickle
 # import libraries
 from sqlalchemy import create_engine
 import pandas as pd
@@ -26,11 +27,10 @@ def load_data(database_filepath):
     # load data from database
     engine = create_engine('sqlite:///'+database_filepath)
     df = pd.read_sql('DisasterData', engine)
-    print(df.columns)
-    X = df['message'].values
+    df = df[df['related'] != 2]
+    X = df['message']
     y = df.drop(['id', 'message', 'original', 'genre'], axis=1)
     category_names = y.columns
-    y = y.values
     return X, y, category_names
 
 def tokenize(text):
@@ -42,20 +42,20 @@ def build_model():
     pipeline = Pipeline([
         ('vect', CountVectorizer(tokenizer=tokenize)),
         ('tfidf', TfidfTransformer()),
-        ('clf',  MultiOutputClassifier(XGBClassifier()))
+        ('clf',  MultiOutputClassifier(RandomForestClassifier(n_jobs=-1)))
     ])
     parameters = {
-        "clf__estimator__n_estimators": [100,200]
+        "clf__estimator__n_estimators": [100]
     }
 
-    cv = GridSearchCV(pipeline, param_grid=parameters, n_jobs=-1, verbose=1)
+    cv = GridSearchCV(pipeline, param_grid=parameters, verbose=3)
     return cv
     
 
 def evaluate_model(model, X_test, y_test, category_names):
     y_pred = model.predict(X_test)
     
-    print(classification_report(y_preds, y_test, target_names=category_names))
+    print(classification_report(y_pred, y_test, target_names=category_names))
     
     f1 = f1_score(y_test, y_pred, average='micro')
     p = precision_score(y_test, y_pred, average='micro')
@@ -69,7 +69,8 @@ def evaluate_model(model, X_test, y_test, category_names):
 
 
 def save_model(model, model_filepath):
-    pass
+    with open(model_filepath, 'wb') as f:
+        pickle.dump(model, f)
 
 
 def main():
@@ -77,7 +78,7 @@ def main():
         database_filepath, model_filepath = sys.argv[1:]
         print('Loading data...\n    DATABASE: {}'.format(database_filepath))
         X, Y, category_names = load_data(database_filepath)
-        X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2)
+        X_train, X_test, Y_train, Y_test = train_test_split(X.values, Y.values, test_size=0.2)
         
         print('Building model...')
         model = build_model()
