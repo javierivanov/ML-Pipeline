@@ -22,6 +22,13 @@ def load_data(messages_filepath, categories_filepath):
     return df
 
 def clean_data(df):
+    """
+    Parse data into a numeric view for later usage in the ML pipeline
+
+    returns a clean dataframe.
+
+    """
+
     categories = df.categories.str.split(pat=';', expand=True)
     # select the first row of the categories dataframe
     row = categories.iloc[0]
@@ -44,6 +51,10 @@ def clean_data(df):
     return df
 
 def save_data(df, database_filename):
+    """
+    Saves the dataframe as a SQL database.
+
+    """
     engine = create_engine('sqlite:///'+database_filename)
     df.to_sql('DisasterData', engine, index=False)
 

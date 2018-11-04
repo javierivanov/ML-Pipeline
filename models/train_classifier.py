@@ -24,6 +24,11 @@ from sklearn.metrics import f1_score
 from sklearn.metrics import recall_score
 
 def load_data(database_filepath):
+    """
+    Loads and process the sql database from filepath
+    returns Feature set(X) labels(y) and category_names from database.
+    """
+
     # load data from database
     engine = create_engine('sqlite:///'+database_filepath)
     df = pd.read_sql('DisasterData', engine)
@@ -34,18 +39,29 @@ def load_data(database_filepath):
     return X, y, category_names
 
 def tokenize(text):
+    """
+    Buils string tokens from text sentences.
+
+    returns a liist of tokens.
+    """
+
     tokenizer = nltk.tokenize.casual.TweetTokenizer(preserve_case=False)
     return tokenizer.tokenize(text)
 
 
 def build_model():
+    """
+    Builds the ML pipeline model.
+
+    """
+
     pipeline = Pipeline([
         ('vect', CountVectorizer(tokenizer=tokenize)),
         ('tfidf', TfidfTransformer()),
-        ('clf',  MultiOutputClassifier(RandomForestClassifier(n_jobs=-1)))
+        ('clf',  MultiOutputClassifier(XGBClassifier(n_jobs=-1)))
     ])
     parameters = {
-        "clf__estimator__n_estimators": [100]
+        "clf__estimator__n_estimators": [200,300]
     }
 
     cv = GridSearchCV(pipeline, param_grid=parameters, verbose=3)
@@ -53,6 +69,10 @@ def build_model():
     
 
 def evaluate_model(model, X_test, y_test, category_names):
+    """
+    Shows model metrics, for each category.
+
+    """
     y_pred = model.predict(X_test)
     
     print(classification_report(y_pred, y_test, target_names=category_names))
@@ -69,6 +89,10 @@ def evaluate_model(model, X_test, y_test, category_names):
 
 
 def save_model(model, model_filepath):
+    """
+    Saves the trained model for later usage.
+    """
+    
     with open(model_filepath, 'wb') as f:
         pickle.dump(model, f)
 
